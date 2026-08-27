@@ -1,5 +1,5 @@
 -- LexNusa seed.sql（由 scripts/ingest-pasal-id/ingest.js 生成，请勿手改）
--- 生成时间：2026-08-27T12:48:27.015Z
+-- 生成时间：2026-08-27T13:05:57.623Z
 PRAGMA defer_foreign_keys = ON;
 BEGIN TRANSACTION;
 INSERT OR IGNORE INTO nodes (id, name, type, content, description, metadata, frbr_uri, status, number, year, zh_title, zh_summary) VALUES ('uu_2007_25', 'Undang-Undang Nomor 25 Tahun 2007 tentang PENANAMAN MODAL', 'UU', NULL, '确立印尼国内外投资的基本法律框架、国民待遇与投资保障。', '{"domain":"公司与投资","type_name":"Undang-Undang","source_url":"https://peraturan.go.id/id/uu-no-25-tahun-2007","source_pdf_url":"https://peraturan.go.id/files/uu25-2007.pdf","issuing_body":"DPR RI","content_verified":true}', '/akn/id/act/uu/2007/25', 'diubah', '25', 2007, '《投资法》', '确立印尼国内外投资的基本法律框架、国民待遇与投资保障。');
