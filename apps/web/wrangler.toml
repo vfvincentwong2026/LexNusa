@@ -13,5 +13,12 @@ database_name = "lexnusa-db"
 database_id = "ce7f4f7e-a37c-4ef5-97c9-0b7540114982"
 migrations_dir = "../../migrations"
 
+[ai]
+binding = "AI"
+
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "lexnusa-vectors"
+
 [vars]
 NEXT_PUBLIC_BASE_URL = ""

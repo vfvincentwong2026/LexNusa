@@ -5,10 +5,11 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "pnpm --filter web dev",
-    "build": "pnpm --filter web build",
-    "preview": "pnpm --filter web preview",
-    "deploy": "pnpm --filter web deploy",
+    "build": "pnpm --filter web run build",
+    "preview": "pnpm --filter web run preview",
+    "deploy": "pnpm --filter web run deploy",
     "ingest": "node scripts/ingest-pasal-id/ingest.js",
+    "vectors:gen": "node scripts/vectorize-push/gen-vectors.js",
     "db:create": "pnpm --filter web exec wrangler d1 create lexnusa-db --location=apac",
     "db:migrate": "pnpm --filter web exec wrangler d1 execute lexnusa-db --local --file=../../migrations/0001_schema.sql",
     "seed": "pnpm --filter web exec wrangler d1 execute lexnusa-db --local --file=../../out/seed.sql"

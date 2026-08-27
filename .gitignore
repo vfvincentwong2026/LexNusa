@@ -8,3 +8,6 @@ out/*
 .wrangler/
 *.log
 .DS_Store
+# 向量数据文件可由脚本重新生成，不入库
+scripts/vectorize-push/articles*.json
+scripts/vectorize-push/vectors*.ndjson
