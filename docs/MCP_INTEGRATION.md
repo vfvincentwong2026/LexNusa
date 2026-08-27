@@ -1,12 +1,13 @@
 # MCP 协议集成指南
 
-> **文档版本**：v1.0.0 | **最后更新**：2026-08-27
+> **文档版本**：v1.1.0 | **最后更新**：2026-08-27
+> **v1.1.0 变更**：传输协议由 SSE 改为 **Streamable HTTP**（MCP 官方现行规范，SSE 传输已弃用；Pasal.id 等生产级实现均采用 Streamable HTTP）。
 
 ---
 
 ## 1. 什么是 MCP？
 
-MCP（Model Context Protocol，模型上下文协议）是一个开放标准，允许 AI 应用程序（如 Claude Desktop、Cursor、Zed）通过标准化接口访问外部数据源和工具。
+MCP（Model Context Protocol，模型上下文协议）是一个开放标准，允许 AI 应用程序（如 Claude Desktop、Cursor、Codex）通过标准化接口访问外部数据源和工具。
 
 **LexNusa 的 MCP 能力**：将 D1 图谱、Vectorize 索引、R2 文件存储暴露为 MCP 工具，使任何支持 MCP 的 AI 客户端能够查询印尼法规。
 
@@ -14,10 +15,12 @@ MCP（Model Context Protocol，模型上下文协议）是一个开放标准，�
 
 ## 2. LexNusa MCP 端点
 
-| 环境 | 端点 URL | 说明 |
+| 环境 | 端点 URL | 传输协议 |
 | :--- | :--- | :--- |
-| **生产** | `https://mcp.lexnusa.workers.dev/sse` | SSE（Server-Sent Events）协议端点 |
-| **预览** | `https://mcp-staging.lexnusa.workers.dev/sse` | 用于测试 |
+| **生产** | `https://mcp.lexnusa.workers.dev/mcp` | Streamable HTTP |
+| **预览** | `https://mcp-staging.lexnusa.workers.dev/mcp` | Streamable HTTP |
+
+> 说明：端点统一使用 `/mcp` 路径（与 Pasal.id `https://mcp.pasal.id/mcp` 等行业实践一致）。客户端请求头须携带 `Accept: application/json, text/event-stream`，服务端按需在单次响应内升级为 SSE 流。
 
 ---
 
@@ -40,7 +43,13 @@ LexNusa MCP Worker 提供以下 Tools：
 
 ## 4. 集成到 Claude Desktop
 
-### 4.1 配置 Claude Desktop
+### 4.1 命令行添加（推荐）
+
+```bash
+claude mcp add --transport http lexnusa https://mcp.lexnusa.workers.dev/mcp
+```
+
+### 4.2 手动编辑配置文件
 
 编辑 Claude Desktop 配置文件（macOS：`~/Library/Application Support/Claude/claude_desktop_config.json`，Windows：`%APPDATA%\Claude\claude_desktop_config.json`）：
 
@@ -48,51 +57,56 @@ LexNusa MCP Worker 提供以下 Tools：
 {
   "mcpServers": {
     "lexnusa": {
-      "url": "https://mcp.lexnusa.workers.dev/sse"
+      "type": "http",
+      "url": "https://mcp.lexnusa.workers.dev/mcp"
     }
   }
 }
-4.2 使用示例
+```
+
+### 4.3 使用示例
+
 配置完成后，在 Claude Desktop 中输入：
 
-text
+```text
 请帮我查询印尼关于 PMA（外商投资）设立的最新法规
-Claude 将自动调用 search_regulations 和 get_ancestors 工具，返回结构化的法规信息。
+```
 
-5. 集成 Obsidian 本地知识库
-5.1 安装 Obsidian MCP 插件
+Claude 将自动调用 `search_regulations` 和 `get_ancestors` 工具，返回结构化的法规信息。
+
+---
+
+## 5. 集成 Obsidian 本地知识库
+
+### 5.1 安装 Obsidian MCP 插件
+
 方案一：使用 obsidian-mcp 社区插件
 
-在 Obsidian 中搜索并安装 Obsidian MCP 插件（由 marpio-dev 开发）。
+1. 在 Obsidian 中搜索并安装 Obsidian MCP 插件。
+2. 在插件设置中，配置 MCP 服务器端口（默认 2710）。
+3. 启动插件后，Obsidian 会自动暴露为 MCP 服务器。
 
-在插件设置中，配置 MCP 服务器端口（默认 2710）。
+### 5.2 配置 LexNusa Worker 连接 Obsidian
 
-启动插件后，Obsidian 会自动暴露为 MCP 服务器。
+在 `wrangler.toml` 中添加环境变量：
 
-5.2 配置 LexNusa Worker 连接 Obsidian
-在 wrangler.toml 中添加环境变量：
-
-toml
+```toml
 [vars]
 OBSIDIAN_MCP_URL = "http://localhost:2710"
-然后在 Worker 中调用 Obsidian MCP 工具：
+```
 
-typescript
-// 调用 Obsidian MCP 的 search_notes 工具
-const obsidianResult = await fetch(OBSIDIAN_MCP_URL + '/search', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ query: '印尼裁员补偿', limit: 5 })
-});
-5.3 融合查询（官方图谱 + 私有笔记）
-typescript
+> ⚠️ 注意：`localhost` 只在本地 `wrangler dev` 调试时可达；生产 Worker 运行在 Cloudflare 边缘，**无法访问用户本机的 Obsidian**。生产环境的私有知识库集成需要改为"用户侧代理上传索引"或 Cloudflare Tunnel 方案，设计前需另行评审。
+
+### 5.3 融合查询（官方图谱 + 私有笔记）
+
+```typescript
 // Worker 端混合查询逻辑
 async function hybridSearch(query: string) {
   // 1. 查询 D1 图谱
   const official = await searchRegulations(query);
 
-  // 2. 查询 Obsidian 本地笔记（如已配置）
-  let private = [];
+  // 2. 查询 Obsidian 本地笔记（仅本地调试环境可用）
+  let private: unknown[] = [];
   if (OBSIDIAN_MCP_URL) {
     private = await searchObsidianNotes(query);
   }
@@ -100,23 +114,43 @@ async function hybridSearch(query: string) {
   // 3. 融合结果（官方法规优先，本地笔记作为补充）
   return { official, private };
 }
-6. MCP 协议调试
-6.1 使用 MCP Inspector
-MCP 官方提供了调试工具：
+```
 
-bash
-npx @modelcontextprotocol/inspector https://mcp.lexnusa.workers.dev/sse
-6.2 本地测试
-bash
+---
+
+## 6. MCP 协议调试
+
+### 6.1 使用 MCP Inspector
+
+MCP 官方提供的调试工具：
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+在 Inspector 界面中选择 **Streamable HTTP** 传输，填入端点 URL 即可连接调试。
+
+### 6.2 本地测试
+
+```bash
 # 本地启动 MCP Worker
 cd backend/mcp
 wrangler dev
 
-# 在另一个终端测试 SSE 连接
-curl -N https://localhost:8787/sse
-7. 安全注意事项
-风险	缓解措施
-未授权访问	使用 Cloudflare Access 或 API Key 保护 MCP 端点
-数据泄露	所有传输强制 HTTPS，敏感数据（如 PDF）使用预签名 URL
-速率滥用	在 Worker 层面实施速率限制（Rate Limiting）
-Obsidian 本地暴露	仅限 localhost 访问，不暴露公网
+# 在另一个终端测试（Streamable HTTP：POST + 双 Accept 头）
+curl -N -X POST http://localhost:8787/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}'
+```
+
+---
+
+## 7. 安全注意事项
+
+| 风险 | 缓解措施 |
+| :--- | :--- |
+| 未授权访问 | 使用 Cloudflare Access 或 API Key（Bearer Token）保护 MCP 端点 |
+| 数据泄露 | 所有传输强制 HTTPS，敏感数据（如 PDF）使用预签名 URL |
+| 速率滥用 | 在 Worker 层面实施速率限制（Rate Limiting） |
+| Obsidian 本地暴露 | 仅限 localhost 访问，不暴露公网 |

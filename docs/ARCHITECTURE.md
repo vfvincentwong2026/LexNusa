@@ -26,7 +26,7 @@ LexNusa 采用 **Cloudflare 全栈边缘计算架构**，所有组件运行在 C
 │ ┌─────────────────────────────────────────────────────┐ │
 │ │ Cloudflare Workers（后端逻辑） │ │
 │ │ ├── api.lexnusa.workers.dev（RESTful API） │ │
-│ │ ├── mcp.lexnusa.workers.dev（MCP SSE 端点） │ │
+│ │ ├── mcp.lexnusa.workers.dev（MCP 端点，Streamable HTTP） │ │
 │ │ └── a2a.lexnusa.workers.dev（A2A 协作网关） │ │
 │ └────────────────────┬────────────────────────────────┘ │
 │ ▼ │
@@ -88,7 +88,7 @@ text
 
 | 协议 | 实现方案 | 端点 |
 | :--- | :--- | :--- |
-| **MCP（模型上下文协议）** | Worker 原生 SSE（Server-Sent Events） | `https://mcp.lexnusa.workers.dev/sse` |
+| **MCP（模型上下文协议）** | Streamable HTTP（MCP 现行规范；SSE 传输已弃用） | `https://mcp.lexnusa.workers.dev/mcp` |
 | **A2A（智能体间通信）** | JSON-RPC over HTTPS（Google A2A 草案） | `https://a2a.lexnusa.workers.dev/discover` |
 
 ---

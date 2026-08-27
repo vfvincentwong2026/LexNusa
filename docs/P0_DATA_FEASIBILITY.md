@@ -93,8 +93,8 @@ Pasal.id 搜索是字面关键词匹配：无语义理解、印尼语新旧拼�
 | :--- | :--- |
 | ① 50 题实测数据覆盖度 | ✅ 完成（本报告） |
 | ② Pasal.id 商用署名/量级口径确认 | ⏳ **待 Owner**：需注册 pasal.id 账号（Google/Facebook 登录）→ 创建 token + 就其商用条款发询 |
-| ③ bge-m3 三语检索小实验 | ⏳ 待做（Workers AI，独立于本测试） |
-| ④ 文档硬伤修正（embedding 模型/MCP 协议/SQL） | ⏳ 待做 |
+| ③ bge-m3 三语检索小实验 | ✅ 完成（2026-08-27，见 `p0_test/bge-m3-lab/RESULTS.md`）：组内跨语言相似度均值 0.80 vs 跨组 0.41（分离度 0.39）；对照 bge-base-en-v1.5 分离度仅 0.035 检索失效，模型选型修正获实测确认 |
+| ④ 文档硬伤修正（embedding 模型/MCP 协议/SQL） | ✅ 完成（2026-08-27）：README / DATA_MODEL / MCP_INTEGRATION / ARCHITECTURE 四篇已修订 |
 
 ## 7. 下一步建议
 

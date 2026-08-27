@@ -5,7 +5,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 [![Monorepo](https://img.shields.io/badge/architecture-monorepo-blue)](https://github.com/)
 
-> **为中国出海企业量身打造**：基于 Cloudflare 边缘网络的印尼法律智能中台。通过 **“知识图谱浏览器”+“多专家 Agent 门户”** 双网页，让印尼 17 万+ 法规“看得懂、查得准、问得出”。
+> **为中国出海企业量身打造**：基于 Cloudflare 边缘网络的印尼法律智能中台。通过 **“知识图谱浏览器”+“多专家 Agent 门户”** 双网页，让印尼数万部法规、近百万条款“看得懂、查得准、问得出”。
 
 ---
 
@@ -42,7 +42,7 @@ graph LR
     Workers --> R2
 
     subgraph MCP_A2A[协议桥梁]
-        MCP[MCP over SSE]
+        MCP[MCP over Streamable HTTP]
         A2A[A2A JSON-RPC]
     end
 
@@ -53,11 +53,11 @@ graph LR
 
 图谱 + 向量混合检索：D1 存储法规节点/关系（递归 CTE 查询），Vectorize 存储语义向量，一次检索同时返回精确匹配与语义相关结果。
 
-MCP 协议原生支持：Workers 提供标准 MCP SSE 端点，可被 Claude Desktop、Cursor 等第三方 AI 客户端直接接入。
+MCP 协议原生支持：Workers 提供标准 MCP 端点（Streamable HTTP），可被 Claude Desktop、Cursor 等第三方 AI 客户端直接接入。
 
 A2A 多 Agent 协作：实现 Google A2A 协议草案，支持多个专家 Agent 协同完成复杂合规报告。
 
-Fork 权威数据：基于印尼财政部法律局 indonesian-legal-network-analysis 项目重构，保留权威数据模型。
+权威数据底座：消费 Pasal.id 开放法律数据平台 API（4 万+ 法规 / 93 万+ 结构化条款，修订链与状态标注齐备），LexNusa 自建中文映射与检索层（详见 docs/P0_DATA_FEASIBILITY.md）。
 
 📂 项目目录结构（GitHub 标准 Monorepo）
 
@@ -82,7 +82,7 @@ lexnusa/
 │   ├── api/                          # RESTful 图谱查询 Worker
 │   │   ├── src/index.ts
 │   │   └── wrangler.toml
-│   ├── mcp/                          # MCP 协议 Worker（SSE 端点）
+│   ├── mcp/                          # MCP 协议 Worker（Streamable HTTP 端点）
 │   │   ├── src/index.ts
 │   │   └── wrangler.toml
 │   └── a2a/                          # A2A 多 Agent 协作 Worker
@@ -95,7 +95,7 @@ lexnusa/
 │   └── 0003_vector_meta.sql
 │
 ├── scripts/                          # 运维 & 数据迁移脚本
-│   ├── ingest-from-official/         # Fork 官方数据导入 D1
+│   ├── ingest-pasal-id/              # 从 Pasal.id API 同步法规与修订链
 │   └── vectorize-push/               # 生成 Embedding 推送 Vectorize
 │
 ├── docs/                             # 文档
@@ -124,13 +124,13 @@ wrangler d1 create lexnusa-db --location=apac
 
 # 应用所有 SQL 迁移
 wrangler d1 migrations apply lexnusa-db --remote
-3. 导入权威法规数据（Fork 自官方项目）
+3. 导入法规数据（从 Pasal.id API 同步）
 bash
-# 下载并解析印尼官方法规 JSON，灌入 D1
+# 按核心法规清单拉取条款全文与修订链，三重校验后灌入 D1
 pnpm run ingest:regulations
 4. 构建向量索引
 bash
-# 为法规条款生成 Embedding（默认使用 @cf/baai/bge-base-en-v1.5）
+# 为法规条款生成 Embedding（默认使用 @cf/baai/bge-m3，多语言，覆盖中文/印尼语/英语）
 pnpm run vectorize:push
 5. 部署后端 Workers（API + MCP + A2A）
 bash
@@ -176,16 +176,16 @@ WITH RECURSIVE parent_tree AS (
 SELECT * FROM parent_tree;
 🔌 协议集成（MCP / A2A）
 协议	Worker 端点	用途
-MCP	https://lexnusa-mcp.workers.dev/sse	将 D1 图谱暴露为标准 MCP 工具，供 Claude Desktop 等客户端调用
+MCP	https://lexnusa-mcp.workers.dev/mcp	将 D1 图谱暴露为标准 MCP 工具（Streamable HTTP），供 Claude Desktop 等客户端调用
 A2A	https://lexnusa-a2a.workers.dev/discover	多 Agent 发现与协作，支持“公司法专家”向“税务专家”请求数据
-🗺️ 路线图
-☑ D1 Schema 设计与 Fork 数据迁移脚本
-☑ 后端 Workers 基础 API（图谱查询 + 搜索）
-☑ 双前端脚手架搭建（Vite + React）
-□ 网页一：D3.js 关系图谱交互开发
-□ 网页二：Agent 对话界面与流式响应（SSE）
-□ Vectorize 混合检索调优
-□ MCP Worker 完整工具链（查询/遍历/读取）
+🗺️ 路线图（2026-08-27 按 PM 评估修订，详见 docs/PM_EVALUATION.md 与 docs/P0_DATA_FEASIBILITY.md）
+☑ 文档蓝图：架构 / 数据模型 / 产品规格 / MCP 集成（仓库当前为文档阶段，代码未开工）
+☑ P0 数据可行性实测：Pasal.id 50 题覆盖度验证 + API 通路打通
+□ P0 收尾：bge-m3 三语检索实验
+□ P1 MVP 单网页：中文优先法规搜索 + 条款阅读 + 修订状态标注
+□ P2 图谱可视化（D3.js）+ 公司法专家 Agent（流式响应）
+□ P3 MCP Worker 完整工具链（Streamable HTTP，查询/遍历/读取）
+□ 部长级法规（PMK/Permenaker/PER）第二数据源补齐
 □ A2A 多 Agent 协同案例（企业合规报告自动生成）
 □ GitHub Actions CI/CD 自动部署流水线
 🤝 贡献指南
@@ -204,14 +204,12 @@ Fork 本仓库
 请确保代码通过 ESLint 和 TypeScript 类型检查。
 
 🙏 致谢与数据源
-核心数据：Fork 自 indonesian-legal-network-analysis（印尼财政部法律局）
+核心数据：Pasal.id（印尼开放法律数据平台，AGPL-3.0；LexNusa 以 API 消费 + 署名方式使用，不镜像其数据库）
 
-结构化 API：Pasal.id（印尼开放法律数据平台）
-
-向量模型：Cloudflare Workers AI (@cf/baai/bge-base-en-v1.5)
+向量模型：Cloudflare Workers AI (@cf/baai/bge-m3，多语言)
 
 📄 许可证
-本项目采用 MIT License 开源。Fork 核心数据模型遵循其原始许可证。
+本项目代码采用 MIT License 开源。法规文本依印尼 UU No. 28/2014 第 13 条属公共领域；Pasal.id 结构化数据的使用遵循其 AGPL-3.0 许可与服务条款（禁止整体再分发）。
 
 📧 联系我们
 让印尼法律成为企业出海的助推器，而非绊脚石。
