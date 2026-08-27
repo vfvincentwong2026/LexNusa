@@ -1,0 +1,19 @@
+{
+  "name": "lexnusa",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "preview": "pnpm --filter web preview",
+    "deploy": "pnpm --filter web deploy",
+    "ingest": "node scripts/ingest-pasal-id/ingest.js",
+    "db:create": "pnpm --filter web exec wrangler d1 create lexnusa-db --location=apac",
+    "db:migrate": "pnpm --filter web exec wrangler d1 execute lexnusa-db --local --file=../../migrations/0001_schema.sql",
+    "seed": "pnpm --filter web exec wrangler d1 execute lexnusa-db --local --file=../../out/seed.sql"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
