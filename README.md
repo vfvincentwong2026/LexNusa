@@ -1,22 +1,30 @@
 # LexNusa：印尼企业服务知识图谱与 Agent 平台
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages%20%7C%20Workers%20%7C%20D1-orange)](https://cloudflare.com/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers%20%7C%20D1%20%7C%20Vectorize-orange)](https://cloudflare.com/)
 [![Monorepo](https://img.shields.io/badge/architecture-monorepo-blue)](https://github.com/)
 
-> **为中国出海企业量身打造**：基于 Cloudflare 边缘网络的印尼法律智能中台。通过 **“知识图谱浏览器”+“多专家 Agent 门户”** 双网页，让印尼数万部法规、近百万条款“看得懂、查得准、问得出”。
+> **为中国出海企业量身打造**：基于 Cloudflare 边缘网络的印尼法律智能中台。中文优先检索 + 印尼语原文 + AI 语义匹配，让印尼数万部法规、近百万条款"看得懂、查得准、问得出"。
+
+## 🚀 线上 MVP（已上线）
+
+**https://lexnusa-web.vfvincentwong-881.workers.dev**
+
+- 中文/印尼语双语关键词搜索（精确匹配）
+- AI 语义检索（bge-m3 跨语言向量，中文自然语言直接命中印尼语条款）
+- 条款阅读器 + 修订状态徽章（现行 / 已修订 / 已废止）+ 修订关系跳转
+
+**当前数据底座**：26 部核心法规（公司/劳工/税务/移民/土地/行业监管六大领域）· 3,304 条款 · 1,749 条修订/引用关系 · 1,144 条条款向量，全部真实同步自 [Pasal.id](https://pasal.id) API。
 
 ---
 
-## 📖 项目概览
+## 📖 产品形态（规划）
 
-LexNusa 完全运行于 **Cloudflare 全栈生态**（Pages + Workers + D1 + Vectorize + R2），零服务器运维，全球低延迟。项目包含 **两大独立前端应用**：
-
-| 网页 | 功能定位 | 核心能力 |
+| 网页 | 功能定位 | 状态 |
 | :--- | :--- | :--- |
-| **🌐 网页一：知识图谱浏览器** | 结构化法规数据展示与探索 | 关系图谱可视化（D3.js）、矢量语义检索、法规条款关联树、修订脉络追溯 |
-| **🤖 网页二：Agent 专家平台** | 基于图谱“生长”出的对话式 AI 专家 | 内置“公司法/税务/劳工”等专家 Agent，每个 Agent 拥有独立人设（Prompt）与技能（Skill），支持 MCP 协议调用底层图谱 |
+| **法规搜索与阅读**（apps/web） | 中文优先搜索 + 语义检索 + 条款阅读 + 修订状态 | ✅ **MVP 已上线** |
+| **知识图谱浏览器** | D3.js 关系图谱可视化、修订脉络追溯 | ⏳ P2 待做 |
+| **Agent 专家平台** | 公司法/税务/劳工专家 Agent，MCP 协议调用底层图谱 | ⏳ P2–P3 待做 |
 
 ---
 
@@ -24,149 +32,115 @@ LexNusa 完全运行于 **Cloudflare 全栈生态**（Pages + Workers + D1 + Vec
 
 ```mermaid
 graph LR
-    User[中国企业用户] --> Page1[网页一: 图谱浏览器]
-    User --> Page2[网页二: Agent 门户]
+    User[中国企业用户] --> Web[法规搜索与阅读 MVP]
 
     subgraph CF[Cloudflare 边缘网络]
-        Pages[Pages 托管双前端]
-        Workers[Workers API 网关]
-        D1[D1: 关系图谱数据库]
-        Vec[Vectorize: 向量索引]
-        R2[R2: PDF/附件存储]
+        Web[apps web - Next.js on Workers]
+        D1[(D1 关系图谱数据库)]
+        Vec[(Vectorize 向量索引)]
+        AI[Workers AI bge-m3]
     end
 
-    Page1 --> Workers
-    Page2 --> Workers
-    Workers --> D1
-    Workers --> Vec
-    Workers --> R2
+    Web --> D1
+    Web --> Vec
+    Web --> AI
 
-    subgraph MCP_A2A[协议桥梁]
-        MCP[MCP over Streamable HTTP]
-        A2A[A2A JSON-RPC]
+    subgraph Future[规划中的协议层]
+        MCP[MCP Worker - Streamable HTTP]
+        A2A[A2A 协作网关]
     end
 
-    Workers -.-> MCP
-    Workers -.-> A2A
-✨ 核心特性
-双网页独立部署：两个前端应用可分别绑定不同域名（如 graph.lexnusa.com 和 agent.lexnusa.com），也可同域路由，灵活适配企业需求。
+    PasalID[Pasal.id API 数据源] -.同步.-> D1
+```
 
-图谱 + 向量混合检索：D1 存储法规节点/关系（递归 CTE 查询），Vectorize 存储语义向量，一次检索同时返回精确匹配与语义相关结果。
+**核心特性**
 
-MCP 协议原生支持：Workers 提供标准 MCP 端点（Streamable HTTP），可被 Claude Desktop、Cursor 等第三方 AI 客户端直接接入。
+- **图谱 + 向量混合检索**：D1 存储法规节点/关系（递归 CTE 遍历），Vectorize + bge-m3 支撑中↔印尼↔英三语语义检索，一次检索同时返回精确匹配与 AI 语义相关结果。
+- **权威数据底座**：消费 Pasal.id 开放法律数据平台 API（4 万+ 法规 / 93 万+ 结构化条款，修订链与状态标注齐备），LexNusa 自建中文映射与检索层（详见 [docs/P0_DATA_FEASIBILITY.md](docs/P0_DATA_FEASIBILITY.md)）。
+- **MCP 协议（规划）**：将图谱暴露为标准 MCP 工具（Streamable HTTP），供 Claude Desktop、Cursor 等客户端调用。
+- **A2A 多 Agent 协作（规划）**：实现 Google A2A 协议草案，多专家 Agent 协同生成合规报告。
 
-A2A 多 Agent 协作：实现 Google A2A 协议草案，支持多个专家 Agent 协同完成复杂合规报告。
+---
 
-权威数据底座：消费 Pasal.id 开放法律数据平台 API（4 万+ 法规 / 93 万+ 结构化条款，修订链与状态标注齐备），LexNusa 自建中文映射与检索层（详见 docs/P0_DATA_FEASIBILITY.md）。
+## 📂 项目目录结构（实际）
 
-📂 项目目录结构（GitHub 标准 Monorepo）
-
+```text
 lexnusa/
-├── .github/                          # GitHub 社区模板
-│   ├── ISSUE_TEMPLATE/               # Issue 模板
-│   └── workflows/                    # CI/CD 工作流（自动部署）
+├── apps/
+│   └── web/                        # ✅ 法规搜索与阅读（Next.js 14 + Tailwind）
+│       ├── app/                    # 首页 / search / law/[id] 三页面（SSR 直读 D1）
+│       ├── wrangler.toml           # DB / AI / VECTORIZE 绑定
+│       └── open-next.config.ts     # @opennextjs/cloudflare 1.15.1 部署配置
 │
-├── apps/                             # 前端应用层（两个独立网页）
-│   ├── graph-viewer/                 # 📍 网页一：知识图谱浏览器
-│   │   ├── src/                      # React/Vite + D3.js
-│   │   ├── public/
-│   │   ├── package.json
-│   │   └── wrangler.toml             # Pages 部署配置
-│   └── agent-portal/                 # 📍 网页二：Agent 专家平台
-│       ├── src/                      # React/Vite + 对话界面
-│       ├── public/
-│       ├── package.json
-│       └── wrangler.toml             # Pages 部署配置
+├── migrations/
+│   └── 0001_schema.sql             # D1 Schema：nodes / edges / vector_meta
 │
-├── backend/                          # 后端 Worker 层（API + 协议）
-│   ├── api/                          # RESTful 图谱查询 Worker
-│   │   ├── src/index.ts
-│   │   └── wrangler.toml
-│   ├── mcp/                          # MCP 协议 Worker（Streamable HTTP 端点）
-│   │   ├── src/index.ts
-│   │   └── wrangler.toml
-│   └── a2a/                          # A2A 多 Agent 协作 Worker
-│       ├── src/index.ts
-│       └── wrangler.toml
+├── scripts/
+│   ├── ingest-pasal-id/            # Pasal.id API 同步管线（26 部核心法规清单）
+│   └── vectorize-push/             # bge-m3 批量 Embedding + Vectorize 灌入（断点续跑）
 │
-├── migrations/                       # D1 数据库 Schema（SQL）
-│   ├── 0001_nodes.sql
-│   ├── 0002_edges.sql
-│   └── 0003_vector_meta.sql
+├── out/
+│   └── seed.sql                    # 生成的种子数据（3.08 MB，已入库）
 │
-├── scripts/                          # 运维 & 数据迁移脚本
-│   ├── ingest-pasal-id/              # 从 Pasal.id API 同步法规与修订链
-│   └── vectorize-push/               # 生成 Embedding 推送 Vectorize
+├── docs/                           # 文档
+│   ├── PM_EVALUATION.md            # 产品经理评估报告
+│   ├── P0_DATA_FEASIBILITY.md      # 数据可行性实测（50 题 × Pasal.id）
+│   ├── ARCHITECTURE.md             # 架构决策记录（ADR）
+│   ├── DATA_MODEL.md               # D1 Schema 与图谱查询
+│   ├── PRODUCT_SPEC.md             # 产品功能规格
+│   └── MCP_INTEGRATION.md          # MCP 集成指南（Streamable HTTP）
 │
-├── docs/                             # 文档
-│   └── api-reference.md
-│
-├── package.json                      # Monorepo 根（pnpm workspace）
-├── pnpm-workspace.yaml               # pnpm 工作区配置
-├── wrangler.toml                     # 根配置（绑定 D1/Vectorize/R2）
-├── .gitignore
-├── LICENSE
-└── README.md                         # 👈 你现在正在看这个
+├── package.json                    # Monorepo 根（pnpm workspace）
+├── pnpm-workspace.yaml
+├── .env.example                    # PASAL_TOKEN 配置说明
+└── README.md
+```
 
+---
 
-🚀 快速开始（Cloudflare 部署）
-前置条件：Node.js 18+、pnpm、Wrangler CLI，并已登录 Cloudflare 账号。
+## 🚀 快速开始（复现部署）
 
-1. 克隆并安装依赖
-bash
-git clone https://github.com/your-org/lexnusa.git
-cd lexnusa
+前置条件：Node.js 18+、pnpm、Wrangler CLI，已登录 Cloudflare 账号；Pasal.id token（到 https://pasal.id/akun 免费创建，填入 `.env.local`，格式见 `.env.example`）。
+
+```bash
+# 1. 克隆并安装依赖
+git clone https://github.com/vfvincentwong2026/LexNusa.git
+cd LexNusa
 pnpm install
-2. 初始化 D1 数据库并执行迁移
-bash
-# 创建 D1 实例（选择亚洲区域）
-wrangler d1 create lexnusa-db --location=apac
 
-# 应用所有 SQL 迁移
-wrangler d1 migrations apply lexnusa-db --remote
-3. 导入法规数据（从 Pasal.id API 同步）
-bash
-# 按核心法规清单拉取条款全文与修订链，三重校验后灌入 D1
-pnpm run ingest:regulations
-4. 构建向量索引
-bash
-# 为法规条款生成 Embedding（默认使用 @cf/baai/bge-m3，多语言，覆盖中文/印尼语/英语）
-pnpm run vectorize:push
-5. 部署后端 Workers（API + MCP + A2A）
-bash
-# 部署图谱查询 API
-cd backend/api && wrangler deploy --env production
+# 2. 建 D1 并灌数据（迁移 + 种子；种子较大需分块执行，见 scripts/ingest-pasal-id）
+cd apps/web
+wrangler d1 create lexnusa-db --location=apac   # 把返回的 database_id 填进 wrangler.toml
+pnpm exec wrangler d1 execute lexnusa-db --remote --file=../../migrations/0001_schema.sql
 
-# 部署 MCP 协议端点
-cd ../mcp && wrangler deploy --env production
+# 3.（可选）重新从 Pasal.id 同步生成种子
+cd ../../scripts/ingest-pasal-id && node ingest.js
 
-# 部署 A2A 协作端点
-cd ../a2a && wrangler deploy --env production
-6. 部署双前端网页（Cloudflare Pages）
-bash
-# 部署网页一：知识图谱浏览器
-cd apps/graph-viewer
-pnpm run build
-wrangler pages deploy ./dist --project-name=lexnusa-graph
+# 4.（可选）重建向量索引
+wrangler vectorize create lexnusa-vectors --dimensions=1024 --metric=cosine
+cd ../vectorize-push && node gen-vectors.js   # bge-m3 批量生成 + 灌入，支持断点续跑
 
-# 部署网页二：Agent 专家平台
-cd ../agent-portal
-pnpm run build
-wrangler pages deploy ./dist --project-name=lexnusa-agent
-💡 提示：两个网页部署完成后，Pages 会分别生成 .pages.dev 域名（如 lexnusa-graph.pages.dev 和 lexnusa-agent.pages.dev），你也可以在 Cloudflare Dashboard 绑定自定义域名。
+# 5. 构建部署（opennextjs-cloudflare，产出 Workers 站点）
+cd ../../apps/web && pnpm run deploy
+```
 
-🧠 数据模型（D1 替代 Neo4j）
-利用 D1（SQLite）的 递归 CTE 实现图谱深度遍历，无需额外图数据库：
+---
 
-表名	说明	关键字段
-nodes	法规/条款/实体	id, name, type (UU/PP/PERMEN), content
-edges	关系（引用/修订/废止）	source_id, target_id, relation_type
-vector_meta	向量映射	node_id, chunk_text, vectorize_index
+## 🧠 数据模型（D1 替代 Neo4j）
+
+利用 D1（SQLite）的递归 CTE 实现图谱遍历，无需额外图数据库。详见 [docs/DATA_MODEL.md](docs/DATA_MODEL.md)（含与 Pasal.id 关系类型的映射表）。
+
+| 表名 | 说明 | 关键字段 |
+| :--- | :--- | :--- |
+| nodes | 法规/条款/实体 | id, name, type, content, zh_title, zh_summary, status |
+| edges | 关系（修订/废止/引用/实施/司法审查） | source_id, target_id, relation_type |
+| vector_meta | 向量映射 | node_id, chunk_text, vectorize_index |
+
 示例查询（查找某法规所有上位法）：
 
-sql
+```sql
 WITH RECURSIVE parent_tree AS (
-  SELECT id, name FROM nodes WHERE id = 'UU_2023_6'
+  SELECT id, name FROM nodes WHERE id = 'uu_2023_6'
   UNION
   SELECT n.id, n.name FROM nodes n
   JOIN edges e ON n.id = e.source_id
@@ -174,49 +148,39 @@ WITH RECURSIVE parent_tree AS (
   WHERE e.relation_type = 'AMENDS'
 )
 SELECT * FROM parent_tree;
-🔌 协议集成（MCP / A2A）
-协议	Worker 端点	用途
-MCP	https://lexnusa-mcp.workers.dev/mcp	将 D1 图谱暴露为标准 MCP 工具（Streamable HTTP），供 Claude Desktop 等客户端调用
-A2A	https://lexnusa-a2a.workers.dev/discover	多 Agent 发现与协作，支持“公司法专家”向“税务专家”请求数据
-🗺️ 路线图（2026-08-27 按 PM 评估修订，详见 docs/PM_EVALUATION.md 与 docs/P0_DATA_FEASIBILITY.md）
-☑ 文档蓝图：架构 / 数据模型 / 产品规格 / MCP 集成（仓库当前为文档阶段，代码未开工）
-☑ P0 数据可行性实测：Pasal.id 50 题覆盖度验证 + API 通路打通
-□ P0 收尾：bge-m3 三语检索实验
-□ P1 MVP 单网页：中文优先法规搜索 + 条款阅读 + 修订状态标注
-□ P2 图谱可视化（D3.js）+ 公司法专家 Agent（流式响应）
-□ P3 MCP Worker 完整工具链（Streamable HTTP，查询/遍历/读取）
-□ 部长级法规（PMK/Permenaker/PER）第二数据源补齐
-□ A2A 多 Agent 协同案例（企业合规报告自动生成）
-□ GitHub Actions CI/CD 自动部署流水线
-🤝 贡献指南
-我们欢迎法律专家、全栈开发者和出海企业共同参与：
+```
 
-Fork 本仓库
+---
 
-创建你的特性分支 (git checkout -b feature/amazing-feature)
+## 🗺️ 路线图
 
-提交变更 (git commit -m 'Add some amazing feature')
+- ☑ 文档蓝图：架构 / 数据模型 / 产品规格 / MCP 集成
+- ☑ P0：Pasal.id 数据可行性实测（50 题）+ API 通路打通 + bge-m3 三语实验
+- ☑ P1：MVP 单网页上线——双语关键词搜索 + 条款阅读 + 修订状态标注
+- ☑ P2（部分）：bge-m3 + Vectorize 语义检索上线（1,144 条款向量）
+- □ P2 收尾：peraturan.go.id 官方源补齐 2,160 条空条款；D3.js 图谱可视化；公司法专家 Agent
+- □ 部长级法规（PMK/Permenaker/PER）第二数据源补齐
+- □ P3：MCP Worker 工具链（Streamable HTTP）+ Obsidian 私有库混合查询
+- □ A2A 多 Agent 协同（企业合规报告自动生成）
+- □ GitHub Actions CI/CD 自动部署流水线
 
-推送到分支 (git push origin feature/amazing-feature)
+---
 
-提交 Pull Request
+## 🤝 贡献指南
 
-请确保代码通过 ESLint 和 TypeScript 类型检查。
+欢迎法律专家、全栈开发者和出海企业共同参与：Fork → 特性分支 → commit → push → PR。请确保代码通过 TypeScript 类型检查。
 
-🙏 致谢与数据源
-核心数据：Pasal.id（印尼开放法律数据平台，AGPL-3.0；LexNusa 以 API 消费 + 署名方式使用，不镜像其数据库）
+## 🙏 致谢与数据源
 
-向量模型：Cloudflare Workers AI (@cf/baai/bge-m3，多语言)
+- **核心数据**：[Pasal.id](https://pasal.id)（印尼开放法律数据平台，AGPL-3.0；LexNusa 以 API 消费 + 署名方式使用，不镜像其数据库）
+- **向量模型**：Cloudflare Workers AI（`@cf/baai/bge-m3`，多语言）
 
-📄 许可证
+## 📄 许可证
+
 本项目代码采用 MIT License 开源。法规文本依印尼 UU No. 28/2014 第 13 条属公共领域；Pasal.id 结构化数据的使用遵循其 AGPL-3.0 许可与服务条款（禁止整体再分发）。
 
-📧 联系我们
+> ⚠️ 本平台提供的信息不构成法律意见。重大合规决策请咨询持牌印尼律师并以官方原文为准。
+
+---
+
 让印尼法律成为企业出海的助推器，而非绊脚石。
-
-项目官网：https://lexnusa.com（示例）
-
-商务合作：lexnusa@example.com
-
-微信社群：扫描下方二维码（示例）
-
