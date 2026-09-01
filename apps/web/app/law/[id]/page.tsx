@@ -97,18 +97,20 @@ export default async function LawPage({ params }: { params: { id: string } }) {
   }
 
   // 条款按 BAB 分组
-  const babGroups: { babLabel: string | null; items: ArticleRow[] }[] = [];
+  const babGroups: { babLabel: string | null; items: { a: ArticleRow; flagged: boolean }[] }[] = [];
   for (const a of articles) {
     let babLabel: string | null = null;
+    let flagged = false;
     try {
       const meta = a.metadata ? JSON.parse(a.metadata) : {};
       if (meta.bab) babLabel = `BAB ${meta.bab}${meta.bab_heading ? " — " + meta.bab_heading : ""}`;
+      if (meta.content_source) flagged = true; // 官方 PDF 回填的原始条文
     } catch {
       /* ignore */
     }
     const last = babGroups[babGroups.length - 1];
-    if (last && last.babLabel === babLabel) last.items.push(a);
-    else babGroups.push({ babLabel, items: [a] });
+    if (last && last.babLabel === babLabel) last.items.push({ a, flagged });
+    else babGroups.push({ babLabel, items: [{ a, flagged }] });
   }
 
   return (
@@ -192,9 +194,16 @@ export default async function LawPage({ params }: { params: { id: string } }) {
                   <h3 className="mb-2 mt-6 text-sm font-semibold text-zinc-900">{g.babLabel}</h3>
                 )}
                 <div className="space-y-3">
-                  {g.items.map((a) => (
+                  {g.items.map(({ a, flagged }) => (
                     <article key={a.id} className="border border-zinc-200 bg-white p-4">
-                      <h4 className="mb-2 text-sm font-medium text-accent">{a.name}</h4>
+                      <div className="mb-2 flex items-baseline justify-between gap-3">
+                        <h4 className="text-sm font-medium text-accent">{a.name}</h4>
+                        {flagged && (
+                          <span className="shrink-0 text-xs text-zinc-400">
+                            原始条文·本法已修订
+                          </span>
+                        )}
+                      </div>
                       <p className="whitespace-pre-line text-sm leading-6 text-zinc-800">
                         {a.content}
                       </p>
