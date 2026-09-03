@@ -34,7 +34,11 @@ async function embedBatch(texts) {
 }
 
 (async () => {
-  const filledIds = JSON.parse(fs.readFileSync("out/filled_ids.json", "utf8"));
+  // 用法：node gen-vectors-fill.js [filled_ids.json] [vectors_out.ndjson] [vector_meta_out.sql]
+  const IDS_FILE = process.argv[2] || "filled_ids.json";
+  const NDJSON_OUT = process.argv[3] || "vectors_fill.ndjson";
+  const META_SQL_OUT = process.argv[4] || "vector_meta_fill.sql";
+  const filledIds = JSON.parse(fs.readFileSync(`out/${IDS_FILE}`, "utf8"));
   const coreRegs = JSON.parse(
     fs.readFileSync("../ingest-pasal-id/core-regulations.json", "utf8")
   );
@@ -65,7 +69,7 @@ async function embedBatch(texts) {
   console.log("待向量化:", items.length);
 
   // 断点续跑
-  const outPath = "out/vectors_fill.ndjson";
+  const outPath = "out/" + NDJSON_OUT;
   const done = new Set();
   if (fs.existsSync(outPath)) {
     for (const line of fs.readFileSync(outPath, "utf8").split("\n")) {
@@ -76,7 +80,7 @@ async function embedBatch(texts) {
   console.log("已完成:", done.size, "待处理:", todo.length);
 
   const out = fs.createWriteStream(outPath, { flags: "a" });
-  const metaSql = fs.createWriteStream("out/vector_meta_fill.sql", { flags: "a" });
+  const metaSql = fs.createWriteStream("out/" + META_SQL_OUT, { flags: "a" });
   for (let i = 0; i < todo.length; i += BATCH) {
     const batch = todo.slice(i, i + BATCH);
     const texts = batch.map((r) => `${r.zh_title}\n${r.content.slice(0, MAX_CHARS)}`);
