@@ -1,14 +1,15 @@
-// 批量抓取 id.wikisource KUHPerdata 转录页，断点续传
-// 用法: node fetch_b3.js <from> <to> <outfile>
+// 批量抓取 id.wikisource 转录页，断点续传
+// 用法: node fetch_b3.js <from> <to> <outfile> [pdfname]
 const fs = require('fs');
 const FROM = parseInt(process.argv[2] || '223', 10);
 const TO = parseInt(process.argv[3] || '334', 10);
 const OUT = process.argv[4] || 'C:/Users/夏夜/AppData/Local/Temp/kuhper_b3_pages.json';
+const PDF = process.argv[5] || 'KUHPerdata.pdf';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function fetchBatch(nums) {
-  const titles = nums.map(n => `Halaman:KUHPerdata.pdf/${n}`).join('|');
+  const titles = nums.map(n => `Halaman:${PDF}/${n}`).join('|');
   const url = `https://id.wikisource.org/w/api.php?action=query&titles=${encodeURIComponent(titles)}&prop=revisions&rvprop=content&rvslots=main&format=json&maxlag=5`;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
